@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareNote Monitor</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #1e2937;
+      --muted: #667485;
+      --line: #d8e0e8;
+      --blue: #2563eb;
+      --green: #14845b;
+      --green-bg: #e9f7ef;
+      --yellow: #9f6b03;
+      --yellow-bg: #fff6d8;
+      --red: #b42318;
+      --red-bg: #ffebe8;
+      --shadow: 0 18px 50px rgba(28, 40, 54, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1500px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 22px 0 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #9aa7b5;
+      flex: 0 0 auto;
+    }
+
+    .success .dot, .level-success .dot { background: var(--green); }
+    .warning .dot, .level-warning .dot { background: var(--yellow); }
+    .danger .dot, .level-danger .dot { background: var(--red); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(380px, 0.9fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-header strong {
+      font-size: 15px;
+    }
+
+    .controls {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    button {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 11px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.active {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #edf4ff;
+    }
+
+    .settings-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding: 14px 14px 0;
+    }
+
+    .settings-form input {
+      height: 36px;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      color: var(--text);
+      background: #fff;
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .settings-form input:focus {
+      outline: 2px solid #bfd6ff;
+      border-color: var(--blue);
+    }
+
+    .settings-note {
+      grid-column: 1 / -1;
+      min-height: 17px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .video-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #0d1117;
+      overflow: hidden;
+    }
+
+    .video-stage img,
+    .video-stage iframe {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border: 0;
+      object-fit: contain;
+      background: #0d1117;
+    }
+
+    .video-stage iframe { display: none; }
+    .video-stage.agent-mode img { display: none; }
+    .video-stage.agent-mode iframe { display: block; }
+
+    .video-overlay {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      max-width: calc(100% - 28px);
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(13, 17, 23, 0.74);
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .status-grid {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .status-card {
+      display: grid;
+      gap: 6px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .status-card.success {
+      border-color: #b7e2cd;
+      background: var(--green-bg);
+    }
+
+    .status-card.warning {
+      border-color: #edd17f;
+      background: var(--yellow-bg);
+    }
+
+    .status-card.danger {
+      border-color: #f3b7ad;
+      background: var(--red-bg);
+    }
+
+    .kicker {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .status-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .status-message {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.42;
+      overflow-wrap: anywhere;
+    }
+
+    .events {
+      max-height: 420px;
+      overflow: auto;
+      padding: 8px 14px 14px;
+    }
+
+    .event {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr);
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .event:last-child { border-bottom: 0; }
+    .event .dot { margin-top: 5px; }
+
+    .event-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .event-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      padding: 20px 14px 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        width: min(100vw - 20px, 760px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .badges {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>CareNote Monitor</h1>
+        <div id="lastUpdated" class="subtitle">상태를 불러오는 중</div>
+      </div>
+      <div class="badges">
+        <span id="modelBadge" class="badge"><span class="dot"></span><span>모델 확인중</span></span>
+        <span id="cameraBadge" class="badge"><span class="dot"></span><span>카메라 연결중</span></span>
+      </div>
+    </header>
+
+    <section class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <strong>실시간 카메라</strong>
+          <div class="controls">
+            <button id="streamButton" class="active" type="button">영상</button>
+            <button id="agentButton" type="button">Agent 화면</button>
+            <button id="refreshButton" type="button">새로고침</button>
+          </div>
+        </div>
+        <div id="videoStage" class="video-stage">
+          <img id="agentStream" alt="Agent DVR live stream">
+          <iframe id="agentFrame" title="Agent DVR live view"></iframe>
+          <div id="videoOverlay" class="video-overlay">Agent DVR 스트림 연결중</div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <div class="panel-header">
+            <strong>알림 상태</strong>
+          </div>
+          <form id="settingsForm" class="settings-form">
+            <input id="receiverEmailInput" type="text" autocomplete="email" placeholder="수신자 이메일">
+            <button id="saveSettingsButton" type="submit">저장</button>
+            <button id="resetSettingsButton" type="button">초기화</button>
+            <div id="settingsNote" class="settings-note">긴급 알림과 정기 보고서를 받을 이메일입니다.</div>
+          </form>
+          <div class="status-grid">
+            <div id="pipelineCard" class="status-card">
+              <div class="kicker">Qwen3-VL 분석</div>
+              <div class="status-value"><span class="dot"></span><span id="pipelineLabel">대기중</span></div>
+              <div id="pipelineMessage" class="status-message">분석 요청을 기다리고 있습니다.</div>
+            </div>
+
+            <div id="detectionCard" class="status-card">
+              <div class="kicker">1차 감지</div>
+              <div class="status-value"><span class="dot"></span><span id="detectionLabel">대기중</span></div>
+              <div id="detectionMessage" class="status-message">아직 분석 결과가 없습니다.</div>
+            </div>
+
+            <div id="alertCard" class="status-card">
+              <div class="kicker">긴급 알림</div>
+              <div class="status-value"><span class="dot"></span><span id="alertLabel">알림 대기중</span></div>
+              <div id="alertMessage" class="status-message">위험 상황 감지 시 알림 검사를 실행합니다.</div>
+            </div>
+
+            <div id="summaryCard" class="status-card">
+              <div class="kicker">정기 보고</div>
+              <div class="status-value"><span class="dot"></span><span id="summaryLabel">요약보고서 대기중</span></div>
+              <div id="summaryMessage" class="status-message">정기 요약 실행을 기다리고 있습니다.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <strong>최근 알림</strong>
+          </div>
+          <div id="eventList" class="events">
+            <div class="empty">아직 표시할 알림이 없습니다.</div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const nodes = {
+      lastUpdated: $("#lastUpdated"),
+      modelBadge: $("#modelBadge"),
+      cameraBadge: $("#cameraBadge"),
+      videoStage: $("#videoStage"),
+      agentStream: $("#agentStream"),
+      agentFrame: $("#agentFrame"),
+      videoOverlay: $("#videoOverlay"),
+      streamButton: $("#streamButton"),
+      agentButton: $("#agentButton"),
+      refreshButton: $("#refreshButton"),
+      settingsForm: $("#settingsForm"),
+      receiverEmailInput: $("#receiverEmailInput"),
+      saveSettingsButton: $("#saveSettingsButton"),
+      resetSettingsButton: $("#resetSettingsButton"),
+      settingsNote: $("#settingsNote"),
+      pipelineCard: $("#pipelineCard"),
+      pipelineLabel: $("#pipelineLabel"),
+      pipelineMessage: $("#pipelineMessage"),
+      detectionCard: $("#detectionCard"),
+      detectionLabel: $("#detectionLabel"),
+      detectionMessage: $("#detectionMessage"),
+      alertCard: $("#alertCard"),
+      alertLabel: $("#alertLabel"),
+      alertMessage: $("#alertMessage"),
+      summaryCard: $("#summaryCard"),
+      summaryLabel: $("#summaryLabel"),
+      summaryMessage: $("#summaryMessage"),
+      eventList: $("#eventList"),
+    };
+
+    let streamUrl = "";
+    let frameUrl = "";
+    let settingsLoaded = false;
+
+    function formatTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(date);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setBadge(node, label, level) {
+      node.className = `badge ${level || ""}`.trim();
+      node.querySelector("span:last-child").textContent = label;
+    }
+
+    function levelFromStatus(section) {
+      if (!section) return "";
+      if (section.level && section.level !== "neutral") return section.level;
+      if (["processing", "queued"].includes(section.status)) return "warning";
+      if (["complete", "checked", "sent"].includes(section.status)) return "success";
+      if (["error", "fall_confirmed", "detected"].includes(section.status)) return "danger";
+      return "";
+    }
+
+    function setCard(card, section, labelNode, messageNode) {
+      const level = levelFromStatus(section);
+      card.className = `status-card ${level}`.trim();
+      labelNode.textContent = section?.label || "대기중";
+      messageNode.textContent = section?.message || "";
+    }
+
+    function renderEvents(events) {
+      if (!events || events.length === 0) {
+        nodes.eventList.innerHTML = '<div class="empty">아직 표시할 알림이 없습니다.</div>';
+        return;
+      }
+
+      nodes.eventList.innerHTML = events.map((event) => {
+        const level = event.level ? `level-${event.level}` : "";
+        const metaParts = [formatTime(event.time), event.message].filter(Boolean);
+        return `
+          <div class="event ${level}">
+            <span class="dot"></span>
+            <div>
+              <p class="event-title">${escapeHtml(event.title || "")}</p>
+              <div class="event-meta">${escapeHtml(metaParts.join(" · "))}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function updateVideoSources(agentDvr) {
+      const nextStreamUrl = agentDvr?.stream_url || "";
+      const nextFrameUrl = agentDvr?.iframe_url || "";
+
+      if (nextStreamUrl && nextStreamUrl !== streamUrl) {
+        streamUrl = nextStreamUrl;
+        nodes.agentStream.src = streamUrl;
+      }
+
+      if (nextFrameUrl && nextFrameUrl !== frameUrl) {
+        frameUrl = nextFrameUrl;
+        nodes.agentFrame.src = frameUrl;
+      }
+    }
+
+    function updateSettings(settings) {
+      if (!settings || settingsLoaded) return;
+      nodes.receiverEmailInput.value = settings.receiver_email || "";
+      settingsLoaded = true;
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch(`/api/dashboard/status?ts=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        updateVideoSources(data.agent_dvr);
+        setBadge(nodes.modelBadge, data.model_loaded ? "모델 준비됨" : "모델 로딩중", data.model_loaded ? "success" : "warning");
+
+        setCard(nodes.pipelineCard, data.pipeline, nodes.pipelineLabel, nodes.pipelineMessage);
+        setCard(nodes.detectionCard, data.detection, nodes.detectionLabel, nodes.detectionMessage);
+        setCard(nodes.alertCard, data.alert, nodes.alertLabel, nodes.alertMessage);
+        setCard(nodes.summaryCard, data.summary, nodes.summaryLabel, nodes.summaryMessage);
+        updateSettings(data.settings);
+        renderEvents(data.events);
+
+        nodes.lastUpdated.textContent = `마지막 갱신 ${formatTime(new Date().toISOString())}`;
+      } catch (error) {
+        setBadge(nodes.modelBadge, "서버 연결 확인", "danger");
+        nodes.lastUpdated.textContent = "상태 갱신 실패";
+      }
+    }
+
+    async function saveSettings(event) {
+      event.preventDefault();
+      const receiverEmail = nodes.receiverEmailInput.value.trim();
+      nodes.saveSettingsButton.disabled = true;
+      nodes.settingsNote.textContent = "저장 중입니다.";
+
+      try {
+        const response = await fetch("/api/dashboard/settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            receiver_email: receiverEmail,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "설정 저장에 실패했습니다.");
+        }
+
+        nodes.receiverEmailInput.value = data.receiver_email || receiverEmail;
+        nodes.settingsNote.textContent = "수신자 이메일을 저장했습니다.";
+        settingsLoaded = true;
+        refreshStatus();
+      } catch (error) {
+        nodes.settingsNote.textContent = error.message || "설정 저장에 실패했습니다.";
+      } finally {
+        nodes.saveSettingsButton.disabled = false;
+      }
+    }
+
+    async function resetSettings() {
+      nodes.saveSettingsButton.disabled = true;
+      nodes.resetSettingsButton.disabled = true;
+      nodes.settingsNote.textContent = "기본 수신자로 초기화 중입니다.";
+
+      try {
+        const response = await fetch("/api/dashboard/settings/reset", {
+          method: "POST",
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "초기화에 실패했습니다.");
+        }
+
+        nodes.receiverEmailInput.value = data.receiver_email || "";
+        nodes.settingsNote.textContent = "기본 수신자 이메일로 초기화했습니다.";
+        settingsLoaded = true;
+        refreshStatus();
+      } catch (error) {
+        nodes.settingsNote.textContent = error.message || "초기화에 실패했습니다.";
+      } finally {
+        nodes.saveSettingsButton.disabled = false;
+        nodes.resetSettingsButton.disabled = false;
+      }
+    }
+
+    nodes.agentStream.addEventListener("load", () => {
+      setBadge(nodes.cameraBadge, "카메라 연결됨", "success");
+      nodes.videoOverlay.textContent = "Agent DVR 실시간 영상";
+    });
+
+    nodes.agentStream.addEventListener("error", () => {
+      setBadge(nodes.cameraBadge, "카메라 확인 필요", "warning");
+      nodes.videoOverlay.textContent = "Agent DVR 주소 또는 권한을 확인하세요.";
+    });
+
+    nodes.streamButton.addEventListener("click", () => {
+      nodes.videoStage.classList.remove("agent-mode");
+      nodes.streamButton.classList.add("active");
+      nodes.agentButton.classList.remove("active");
+    });
+
+    nodes.agentButton.addEventListener("click", () => {
+      nodes.videoStage.classList.add("agent-mode");
+      nodes.agentButton.classList.add("active");
+      nodes.streamButton.classList.remove("active");
+      setBadge(nodes.cameraBadge, "Agent 화면", "success");
+      nodes.videoOverlay.textContent = "Agent DVR 화면";
+    });
+
+    nodes.refreshButton.addEventListener("click", () => {
+      if (streamUrl) {
+        nodes.agentStream.src = `${streamUrl}${streamUrl.includes("?") ? "&" : "?"}refresh=${Date.now()}`;
+      }
+      refreshStatus();
+    });
+
+    nodes.settingsForm.addEventListener("submit", saveSettings);
+    nodes.resetSettingsButton.addEventListener("click", resetSettings);
+
+    refreshStatus();
+    setInterval(refreshStatus, 2500);
+  </script>
+</body>
+</html>
