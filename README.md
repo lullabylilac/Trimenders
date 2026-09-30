@@ -10,6 +10,9 @@ README에서는 다음 내용을 확인하실 수 있습니다.
 - 폴더 탐색 때문에 느려지던 문제를 어떻게 해결했는지
 - 테스트와 문제 해결은 어떤 순서로 하면 되는지
 
+[설명 웹사이트](https://trimenders.vercel.app/)
+[설명 유튜브 링크](https://youtu.be/CMo3d6dvhyM?si=uIL7f3HANLKJgZvD)
+
 ## 한 줄 요약
 
 로컬 PC의 AgentDVR가 영상을 녹화하면 `send_video.py`가 RunPod 서버의 `server.py`로 영상을 보내고, 서버는 Qwen 모델로 영상 설명 텍스트를 만든 뒤 낙상 감지, 이메일 알림, 요약보고서 생성을 처리합니다.
